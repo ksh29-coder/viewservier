@@ -1,0 +1,350 @@
+# Frontend (React) - Cursor Rules
+
+## Technology Stack
+- React 18
+- Vite (build tool)
+- React Window (virtualization)
+- Native WebSocket API
+- Tailwind CSS (styling)
+- JavaScript/JSX
+
+## Code Guidelines
+
+### React Best Practices
+- Use functional components with hooks (no class components)
+- Use `useState` and `useEffect` appropriately
+- Implement proper dependency arrays for `useEffect`
+- Use `useCallback` and `useMemo` for performance optimization
+- Extract custom hooks for reusable logic
+- Follow component composition patterns
+
+```jsx
+// Preferred component pattern
+const GridView = ({ userId, viewId }) => {
+    const [gridData, setGridData] = useState({});
+    const [connected, setConnected] = useState(false);
+    
+    const handleCellUpdate = useCallback((data) => {
+        setGridData(prev => {
+            // Immutable update pattern
+            const updated = { ...prev };
+            // Update logic
+            return updated;
+        });
+    }, []);
+    
+    useEffect(() => {
+        // WebSocket setup with cleanup
+        return () => {
+            // Cleanup function
+        };
+    }, [userId, viewId]);
+    
+    return (
+        <div>
+            {/* Component JSX */}
+        </div>
+    );
+};
+```
+
+### WebSocket Management
+- Use singleton WebSocket service pattern
+- Implement proper connection state management
+- Handle reconnection with exponential backoff
+- Use event listeners pattern for message handling
+- Clean up listeners on component unmount
+
+```javascript
+// Preferred WebSocket service pattern
+class WebSocketService {
+    constructor() {
+        this.socket = null;
+        this.listeners = new Map();
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+    }
+    
+    connect(userId, viewId) {
+        const url = `ws://localhost:8080/ws/grid/${userId}/${viewId}`;
+        this.socket = new WebSocket(url);
+        
+        this.socket.onopen = () => {
+            this.reconnectAttempts = 0;
+            this.notifyListeners('connected', null);
+        };
+        
+        this.socket.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            this.notifyListeners(message.type, message);
+        };
+    }
+}
+```
+
+### Grid Virtualization
+- Use React Window for large datasets
+- Implement efficient cell rendering
+- Handle scrolling performance
+- Optimize re-renders with proper memoization
+- Use fixed cell sizes for better performance
+
+```jsx
+// Preferred virtualized grid pattern
+const VirtualizedGrid = ({ gridData, rows, columns }) => {
+    const Cell = React.memo(({ columnIndex, rowIndex, style }) => {
+        const cellKey = `${rowIndex}:${columnIndex}`;
+        const cell = gridData[cellKey];
+        
+        return (
+            <div
+                style={{
+                    ...style,
+                    border: '1px solid #ddd',
+                    backgroundColor: cell?.updated ? '#ffeb3b' : 'white'
+                }}
+            >
+                {cell ? cell.value : ''}
+            </div>
+        );
+    });
+    
+    return (
+        <FixedSizeGrid
+            columnCount={columns}
+            columnWidth={120}
+            height={600}
+            rowCount={rows}
+            rowHeight={35}
+            width={800}
+        >
+            {Cell}
+        </FixedSizeGrid>
+    );
+};
+```
+
+### State Management
+- Use local state for component-specific data
+- Implement efficient state updates (avoid unnecessary re-renders)
+- Use reducer pattern for complex state logic
+- Keep state close to where it's used
+- Implement proper data flow patterns
+
+```jsx
+// Preferred state management pattern
+const useGridData = (userId, viewId) => {
+    const [gridData, setGridData] = useState({});
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    
+    const updateCells = useCallback((updates) => {
+        setGridData(prev => {
+            const newData = { ...prev };
+            updates.forEach(update => {
+                const key = `${update.row}:${update.col}`;
+                newData[key] = { ...update, updated: true };
+            });
+            return newData;
+        });
+    }, []);
+    
+    return { gridData, loading, error, updateCells };
+};
+```
+
+### Performance Optimization
+- Use `React.memo` for expensive components
+- Implement `useCallback` for functions passed as props
+- Use `useMemo` for expensive calculations
+- Avoid inline object/function creation in JSX
+- Implement proper key props for lists
+- Use virtualization for large datasets
+
+### Error Handling
+- Implement error boundaries for component crashes
+- Handle WebSocket connection errors gracefully
+- Show user-friendly error messages
+- Implement retry mechanisms for failed operations
+- Log errors for debugging
+
+```jsx
+// Preferred error handling pattern
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    
+    componentDidCatch(error, errorInfo) {
+        console.error('Grid component error:', error, errorInfo);
+    }
+    
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="error-fallback">
+                    Something went wrong with the grid.
+                    <button onClick={() => window.location.reload()}>
+                        Reload
+                    </button>
+                </div>
+            );
+        }
+        
+        return this.props.children;
+    }
+}
+```
+
+### Loading States
+- Implement proper loading indicators
+- Show progress for chunked data loading
+- Use skeleton screens for better UX
+- Handle different loading states (initial, updating, error)
+
+```jsx
+// Preferred loading pattern
+const LoadingIndicator = ({ chunksReceived, totalChunks, isLoading }) => {
+    if (!isLoading) return null;
+    
+    const progress = totalChunks > 0 ? (chunksReceived / totalChunks) * 100 : 0;
+    
+    return (
+        <div className="loading-container">
+            <div className="loading-text">
+                Loading grid... {chunksReceived}/{totalChunks} chunks
+            </div>
+            <div className="progress-bar">
+                <div 
+                    className="progress-fill" 
+                    style={{ width: `${progress}%` }}
+                />
+            </div>
+        </div>
+    );
+};
+```
+
+### Styling with Tailwind
+- Use Tailwind utility classes consistently
+- Create component variants with CSS classes
+- Use responsive design patterns
+- Implement consistent spacing and colors
+- Create reusable component styles
+
+```jsx
+// Preferred Tailwind pattern
+const GridCell = ({ cell, isUpdated, onClick }) => (
+    <div
+        className={`
+            border border-gray-300 
+            p-1 
+            text-sm 
+            overflow-hidden 
+            cursor-pointer
+            transition-colors
+            duration-200
+            ${isUpdated ? 'bg-yellow-200' : 'bg-white hover:bg-gray-50'}
+        `}
+        onClick={onClick}
+    >
+        {cell?.value || ''}
+    </div>
+);
+```
+
+### Custom Hooks
+- Extract WebSocket logic into custom hooks
+- Create hooks for grid data management
+- Implement reusable connection state hooks
+- Use hooks for metrics and monitoring
+
+```jsx
+// Preferred custom hook pattern
+const useWebSocket = (userId, viewId) => {
+    const [connected, setConnected] = useState(false);
+    const [lastMessage, setLastMessage] = useState(null);
+    
+    useEffect(() => {
+        const handleMessage = (type, data) => {
+            setLastMessage({ type, data, timestamp: Date.now() });
+        };
+        
+        const handleConnection = (status) => {
+            setConnected(status === 'connected');
+        };
+        
+        WebSocketService.addListener('connected', () => handleConnection('connected'));
+        WebSocketService.addListener('disconnected', () => handleConnection('disconnected'));
+        WebSocketService.addListener('CELL_UPDATE', (data) => handleMessage('CELL_UPDATE', data));
+        
+        WebSocketService.connect(userId, viewId);
+        
+        return () => {
+            WebSocketService.removeAllListeners();
+        };
+    }, [userId, viewId]);
+    
+    return { connected, lastMessage };
+};
+```
+
+### Testing
+- Test components with React Testing Library
+- Mock WebSocket connections for testing
+- Test user interactions and state changes
+- Include performance tests for virtualized components
+- Test error scenarios and recovery
+
+### Component Structure
+```
+src/
+├── components/
+│   ├── GridView.jsx
+│   ├── VirtualizedGrid.jsx
+│   ├── LoadingIndicator.jsx
+│   ├── ConnectionStatus.jsx
+│   ├── MetricsDisplay.jsx
+│   └── ErrorBoundary.jsx
+├── hooks/
+│   ├── useWebSocket.js
+│   ├── useGridData.js
+│   └── useMetrics.js
+├── services/
+│   ├── WebSocketService.js
+│   └── GridDataService.js
+├── utils/
+│   ├── dataTypes.js
+│   ├── formatters.js
+│   └── constants.js
+├── App.jsx
+└── main.jsx
+```
+
+### Build and Development
+- Use Vite for fast development and building
+- Configure hot module replacement properly
+- Optimize bundle size for production
+- Use environment variables for configuration
+- Implement proper build processes
+
+### Security
+- Sanitize user inputs
+- Validate WebSocket messages
+- Use secure WebSocket connections (wss://) in production
+- Implement basic input validation
+- Avoid XSS vulnerabilities
+
+## Common Patterns to Avoid
+- Don't create new objects/functions in render methods
+- Avoid missing dependency arrays in useEffect
+- Don't forget to clean up WebSocket listeners
+- Avoid direct DOM manipulation (use refs when needed)
+- Don't ignore error states and loading states
+- Avoid deeply nested component structures
+- Don't use inline styles for performance-critical components 

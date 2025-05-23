@@ -1,0 +1,233 @@
+# View Server (Spring Boot) - Cursor Rules
+
+## Technology Stack
+- Java 17
+- Spring Boot 3.2
+- Spring WebSocket  
+- Spring Kafka
+- Maven
+- Docker
+
+## Code Guidelines
+
+### Spring Boot Best Practices
+- Use `@Service`, `@Component`, `@Repository` annotations appropriately
+- Implement proper dependency injection with constructor injection (preferred)
+- Use `@Configuration` classes for complex bean setup
+- Leverage Spring Boot auto-configuration where possible
+- Follow Spring Boot application.yml configuration patterns
+
+### WebSocket Implementation
+- Use `TextWebSocketHandler` for WebSocket connections
+- Implement proper session management and cleanup
+- Handle connection failures gracefully with reconnection logic
+- Send chunked initial loads to avoid large message frames
+- Include heartbeat/ping-pong mechanisms for connection health
+
+```java
+// Preferred WebSocket pattern
+@Component
+public class GridWebSocketHandler extends TextWebSocketHandler {
+    
+    private final GridManager gridManager;
+    private final WebSocketSessionManager sessionManager;
+    
+    public GridWebSocketHandler(GridManager gridManager, WebSocketSessionManager sessionManager) {
+        this.gridManager = gridManager;
+        this.sessionManager = sessionManager;
+    }
+    
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        // Extract user/view from URI, register session, send initial data
+    }
+}
+```
+
+### Kafka Integration
+- Use `@KafkaListener` for consuming messages
+- Implement proper error handling for message processing
+- Validate message sizes before processing (<100KB)
+- Use batch processing where appropriate
+- Include Kafka metrics and monitoring
+
+```java
+// Preferred Kafka consumer pattern  
+@Service
+public class KafkaEventProcessor {
+    
+    @KafkaListener(topics = "grid-events", groupId = "view-server-group")
+    public void processGridEvent(String eventJson) {
+        try {
+            // Validate message size
+            // Parse and process event
+            // Update grid state
+            // Broadcast to WebSocket clients
+        } catch (Exception e) {
+            log.error("Error processing Kafka event", e);
+        }
+    }
+}
+```
+
+### Memory Management
+- Use `ConcurrentHashMap` for thread-safe grid storage
+- Implement proper cleanup of disconnected sessions
+- Monitor memory usage with JVM metrics
+- Use efficient serialization (Jackson with optimized settings)
+- Avoid large object allocations in hot paths
+
+### Data Models
+- Use immutable objects where possible
+- Implement proper equals/hashCode for Cell objects
+- Use record classes for DTOs (Java 14+)
+- Keep models simple and focused
+
+```java
+// Preferred model pattern
+public record CellUpdate(int row, int column, Object value, String dataType, long timestamp) {}
+
+public class Grid {
+    private final String gridId;
+    private final ConcurrentHashMap<String, Cell> cells;
+    // Immutable fields, thread-safe operations
+}
+```
+
+### Error Handling
+- Use Spring's `@ControllerAdvice` for global exception handling
+- Implement circuit breaker patterns for external dependencies
+- Add proper logging with MDC context
+- Return appropriate HTTP status codes
+- Handle WebSocket disconnections gracefully
+
+### Configuration
+- Use `application.yml` instead of properties files
+- Externalize configuration with environment variables
+- Use Spring profiles for different environments
+- Include validation for configuration values
+
+```yaml
+# Preferred configuration structure
+spring:
+  application:
+    name: view-server
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: view-server-group
+      max-poll-records: 500
+  
+server:
+  port: 8080
+  
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+```
+
+### Performance Optimizations
+- Use connection pooling for external resources
+- Implement message batching with size limits
+- Use async processing where appropriate (`@Async`)
+- Optimize JSON serialization settings
+- Implement proper caching strategies
+
+### Logging
+- Use SLF4J with Logback
+- Include structured logging with JSON format
+- Add performance timing logs
+- Use appropriate log levels (DEBUG for development, INFO for production)
+- Include correlation IDs for request tracing
+
+```java
+// Preferred logging pattern
+private static final Logger log = LoggerFactory.getLogger(GridManager.class);
+
+public void updateCells(String gridId, List<CellChange> changes) {
+    long startTime = System.currentTimeMillis();
+    try {
+        // Process updates
+        log.info("Updated {} cells for grid {} in {}ms", 
+                changes.size(), gridId, System.currentTimeMillis() - startTime);
+    } catch (Exception e) {
+        log.error("Failed to update cells for grid: {}", gridId, e);
+    }
+}
+```
+
+### Testing
+- Use `@SpringBootTest` for integration tests
+- Mock external dependencies with `@MockBean`
+- Test WebSocket connections with `TestWebSocketStompClient`
+- Include performance tests with JMeter or similar tools
+- Use `@TestPropertySource` for test-specific configuration
+
+### Security
+- Validate input data sizes and types
+- Implement basic rate limiting with bucket4j
+- Use CORS configuration for WebSocket endpoints
+- Add input sanitization for user data
+- Include basic authentication if required
+
+### Metrics and Monitoring
+- Use Micrometer for metrics collection
+- Export metrics to Prometheus format
+- Include custom metrics for business logic
+- Monitor WebSocket connection counts
+- Track message processing times and sizes
+
+```java
+// Preferred metrics pattern
+@Component
+public class GridMetrics {
+    private final Counter cellUpdates;
+    private final Timer updateLatency;
+    
+    public GridMetrics(MeterRegistry meterRegistry) {
+        this.cellUpdates = Counter.builder("grid.cell.updates")
+            .description("Number of cell updates processed")
+            .register(meterRegistry);
+        this.updateLatency = Timer.builder("grid.update.latency")
+            .description("Time to process cell updates")
+            .register(meterRegistry);
+    }
+}
+```
+
+## File Structure
+```
+src/main/java/com/viewserver/
+├── ViewServerApplication.java
+├── config/
+│   ├── WebSocketConfig.java
+│   ├── KafkaConfig.java
+│   └── MetricsConfig.java
+├── controller/
+│   ├── GridWebSocketHandler.java
+│   ├── HealthController.java
+│   └── MetricsController.java
+├── service/
+│   ├── GridManager.java
+│   ├── WebSocketSessionManager.java
+│   ├── KafkaEventProcessor.java
+│   └── MessageSizeValidator.java
+├── model/
+│   ├── Grid.java
+│   ├── Cell.java
+│   └── GridEvent.java
+└── dto/
+    ├── InitialLoadResponse.java
+    ├── CellUpdateMessage.java
+    └── WebSocketMessage.java
+```
+
+## Common Patterns to Avoid
+- Don't use synchronous processing for high-throughput operations
+- Avoid creating large objects in frequently called methods
+- Don't store WebSocket sessions without proper cleanup
+- Avoid blocking operations in WebSocket handlers
+- Don't ignore message size validation
+- Avoid using `@Autowired` field injection (use constructor injection) 
