@@ -1,0 +1,211 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for the View Server POC */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Grid-specific styles */
+.grid-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f8fafc;
+}
+
+.grid-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 1rem;
+  flex-shrink: 0;
+}
+
+.grid-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.grid-cell {
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background-color: #ffffff;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.grid-cell:hover {
+  background-color: #f1f5f9;
+}
+
+.grid-cell.updated {
+  background-color: #fef3c7;
+  animation: pulse-yellow 2s ease-out;
+}
+
+.grid-cell.error {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+@keyframes pulse-yellow {
+  0% {
+    background-color: #fbbf24;
+  }
+  100% {
+    background-color: #fef3c7;
+  }
+}
+
+/* Loading states */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: #f8fafc;
+}
+
+.progress-bar {
+  width: 300px;
+  height: 8px;
+  background-color: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #3b82f6;
+  transition: width 0.3s ease-out;
+}
+
+/* Connection status */
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.connection-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.connection-indicator.connected {
+  background-color: #10b981;
+}
+
+.connection-indicator.disconnected {
+  background-color: #ef4444;
+}
+
+.connection-indicator.connecting {
+  background-color: #f59e0b;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Error boundary styles */
+.error-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 2rem;
+  text-align: center;
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.error-fallback button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.error-fallback button:hover {
+  background-color: #b91c1c;
+}
+
+/* Metrics display */
+.metrics-panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin: 1rem;
+  font-size: 0.875rem;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.metric-item:last-child {
+  border-bottom: none;
+}
+
+.metric-label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.metric-value {
+  color: #6b7280;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}

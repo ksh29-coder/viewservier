@@ -1,0 +1,130 @@
+spring:
+  application:
+    name: view-server
+  
+  # Kafka Configuration
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: view-server-group
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: true
+      auto-commit-interval: 1000ms
+      # Small message optimization
+      max-poll-records: 500
+      fetch-min-size: 1
+      fetch-max-wait: 10ms
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # Small message optimization
+      batch-size: 16384
+      linger-ms: 5
+      acks: 1
+
+  # Web Configuration
+  web:
+    resources:
+      add-mappings: true
+
+# Server Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+# Management/Actuator Configuration for monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: view-server
+      environment: ${SPRING_PROFILES_ACTIVE:development}
+
+# Logging Configuration
+logging:
+  level:
+    com.viewserver: INFO
+    org.springframework.kafka: WARN
+    org.springframework.web.socket: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/view-server.log
+    max-size: 100MB
+    max-history: 10
+
+# View Server Specific Configuration
+viewserver:
+  # Grid Configuration (per spec.md)
+  grid:
+    default-rows: 50
+    default-columns: 25
+    max-grids: 100
+    initial-load-chunk-size: 50000
+  
+  # Message Size Configuration (per spec.md)
+  message:
+    max-kafka-size: 100000        # 100KB limit
+    max-cells-per-message: 500    # Max cells per Kafka message
+    target-kafka-size: 20000      # 20KB target
+    max-websocket-batch: 50       # Max cells per WebSocket batch
+    typical-cell-size: 100        # Bytes per cell estimate
+  
+  # Performance Configuration
+  performance:
+    websocket-threads: 10
+    kafka-consumer-threads: 4
+    metrics-interval: 30s
+
+# Profile-specific configurations
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+      
+# Docker profile overrides
+logging:
+  file:
+    name: /app/logs/view-server.log
+
+viewserver:
+  performance:
+    websocket-threads: 20
+    kafka-consumer-threads: 8
+
+---
+spring:
+  config:
+    activate:
+      on-profile: production
+
+# Production profile overrides
+logging:
+  level:
+    com.viewserver: WARN
+    root: ERROR
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus 

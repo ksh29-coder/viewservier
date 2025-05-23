@@ -1,0 +1,24 @@
+spring:
+  kafka:
+    enabled: false
+    consumer:
+      enable-auto-commit: false
+      # Disable auto-startup for testing without Kafka
+    listener:
+      startup-mode: manual
+
+# Disable Kafka health check for testing
+management:
+  health:
+    kafka:
+      enabled: false
+
+logging:
+  level:
+    com.viewserver: DEBUG
+    org.springframework.kafka: ERROR
+    org.springframework.web.socket: DEBUG
+
+# Test profile note:
+# This profile disables Kafka to allow testing WebSocket functionality standalone
+# Use: java -jar app.jar --spring.profiles.active=test 

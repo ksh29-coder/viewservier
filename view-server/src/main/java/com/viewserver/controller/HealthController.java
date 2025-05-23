@@ -31,7 +31,7 @@ public class HealthController {
     @Autowired
     private WebSocketSessionManager sessionManager;
     
-    @Autowired
+    @Autowired(required = false)
     private KafkaEventProcessor kafkaEventProcessor;
     
     /**
@@ -73,12 +73,14 @@ public class HealthController {
         stats.put("websockets", sessionData);
         
         // Kafka processing statistics
-        KafkaEventProcessor.ProcessingStats kafkaStats = kafkaEventProcessor.getProcessingStats();
+        KafkaEventProcessor.ProcessingStats kafkaStats = kafkaEventProcessor != null ? kafkaEventProcessor.getProcessingStats() : null;
         Map<String, Object> kafkaData = new HashMap<>();
-        kafkaData.put("totalMessages", kafkaStats.getTotalMessages());
-        kafkaData.put("totalCells", kafkaStats.getTotalCells());
-        kafkaData.put("averageCellsPerMessage", kafkaStats.getAverageCellsPerMessage());
-        kafkaData.put("timeSinceLastMessage", kafkaStats.getTimeSinceLastMessage());
+        if (kafkaStats != null) {
+            kafkaData.put("totalMessages", kafkaStats.getTotalMessages());
+            kafkaData.put("totalCells", kafkaStats.getTotalCells());
+            kafkaData.put("averageCellsPerMessage", kafkaStats.getAverageCellsPerMessage());
+            kafkaData.put("timeSinceLastMessage", kafkaStats.getTimeSinceLastMessage());
+        }
         stats.put("kafka", kafkaData);
         
         // System information
@@ -104,8 +106,8 @@ public class HealthController {
         Map<String, Object> performance = new HashMap<>();
         
         // Kafka processing performance
-        KafkaEventProcessor.ProcessingStats kafkaStats = kafkaEventProcessor.getProcessingStats();
-        performance.put("kafkaProcessingStats", kafkaStats.toString());
+        KafkaEventProcessor.ProcessingStats kafkaStats = kafkaEventProcessor != null ? kafkaEventProcessor.getProcessingStats() : null;
+        performance.put("kafkaProcessingStats", kafkaStats != null ? kafkaStats.toString() : null);
         
         // Memory performance
         Runtime runtime = Runtime.getRuntime();
@@ -147,12 +149,12 @@ public class HealthController {
         try {
             GridManager.GridStats gridStats = gridManager.getGridStats();
             WebSocketSessionManager.SessionStats sessionStats = sessionManager.getSessionStats();
-            KafkaEventProcessor.ProcessingStats kafkaStats = kafkaEventProcessor.getProcessingStats();
+            KafkaEventProcessor.ProcessingStats kafkaStats = kafkaEventProcessor != null ? kafkaEventProcessor.getProcessingStats() : null;
             
             // Services are accessible
             readiness.put("gridManager", "UP");
             readiness.put("sessionManager", "UP");
-            readiness.put("kafkaProcessor", "UP");
+            readiness.put("kafkaProcessor", kafkaStats != null ? "UP" : "DOWN");
             
         } catch (Exception e) {
             isReady = false;
@@ -198,7 +200,9 @@ public class HealthController {
      */
     @GetMapping("/reset-stats")
     public ResponseEntity<Map<String, Object>> resetStats() {
-        kafkaEventProcessor.resetStats();
+        if (kafkaEventProcessor != null) {
+            kafkaEventProcessor.resetStats();
+        }
         
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Statistics reset successfully");
