@@ -83,8 +83,8 @@ def main():
             
             batch_count += 1
             
-            # Wait before next update (2-5 seconds)
-            time.sleep(random.uniform(0.5, 2))
+            # Wait before next update (much faster now!)
+            time.sleep(random.uniform(0.1, 0.3))
             
     except KeyboardInterrupt:
         print("\n👋 Stopping producer...")
